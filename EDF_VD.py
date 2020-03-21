@@ -16,8 +16,8 @@ def task_lo(env, name, proc, start_time, wcet, period):
         execution_time_left = execution_time
         print('%.2f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f' % (env.now, name, deadline, execution_time))
 
-        while execution_time_left:
-            try:
+        try:
+            while execution_time_left:
                 with proc.request(priority=deadline) as req:
 
                     yield req
@@ -30,22 +30,21 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         print('%.2f:\t%s completed' % (env.now, name))
                         execution_time_left = 0
 
-            except simpy.Interrupt as interrupt:
-                if interrupt.cause:
-                    execution_time_left -= env.now - interrupt.cause.usage_since
-                    if execution_time_left:
-                        print('%.2f:\t%s preempted, time left %d' % (env.now, name, execution_time_left))
-                    else:
-                        print('%.2f:\t%s completed' % (env.now, name))
+            if env.now > deadline:
+                print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
+                deadline_met = False
+            else:
+                yield env.timeout(deadline - env.now)
+        except simpy.Interrupt as interrupt:
+            if interrupt.cause:
+                execution_time_left -= env.now - interrupt.cause.usage_since
+                if execution_time_left:
+                    print('%.2f:\t%s preempted, time left %d' % (env.now, name, execution_time_left))
                 else:
-                    execution_time_left = 0
-                    print('%.2f:\t%s interrupted by hi crit' % (env.now, name))
-
-        if env.now > deadline:
-            print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
-            deadline_met = False
-        else:
-            yield env.timeout(deadline - env.now)
+                    print('%.2f:\t%s completed' % (env.now, name))
+            else:
+                execution_time_left = 0
+                print('%.2f:\t%s interrupted by hi crit' % (env.now, name))
 
 
 def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks):
@@ -62,13 +61,12 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks):
         deadline = arrival_time + period
         execution_time_left = execution_time
 
-        if (execution_time > wcet_lo) & crit_level_lo:
-            lo_tasks.interrupt()
-            crit_level_lo = False
-            lo_execution_time = wcet_lo
-            hi_execution_time = execution_time-wcet_lo
+        if (execution_time > wcet_lo):
+
+            execution_time_lo = wcet_lo
+            execution_time_hi = execution_time-wcet_lo
         else:
-            lo_execution_time = execution_time
+            execution_time_lo = execution_time
 
         print('%.2f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f,\t crit: %s'
               % (env.now, name, deadline, execution_time, crit_level_lo))
@@ -82,10 +80,20 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks):
 
                     if deadline_met:
                         print('%.2f:\t%s executing,\t deadline %.2f,\t exec left: %.2f'
-                              % (env.now, name, deadline, execution_time_left))
-                        yield env.timeout(execution_time_left)
+                              % (env.now, name, deadline, execution_time_lo))
+                        yield env.timeout(execution_time_lo)
+                        execution_time_left = execution_time-execution_time_hi
+                        if execution_time_left:
+                            if crit_level_lo:
+                                for task in lo_tasks:
+                                    task.interrupt()
+                                    crit_level_lo = False
+                                # lo_tasks.interrupt()
+                                # crit_level_lo = False
+                            print('%.2f:\t%s continue,\t deadline %.2f,\t exec left: %.2f,\t HI CRIT LEVEL'
+                                  % (env.now, name, deadline, execution_time_hi))
+                            yield env.timeout(execution_time_hi)
                         print('%.2f:\t%s completed' % (env.now, name))
-                        execution_time_left = 0
 
             except simpy.Interrupt as interrupt:
                 execution_time_left -= env.now - interrupt.cause.usage_since
@@ -106,7 +114,10 @@ crit_level_lo = True
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
-task1 = env.process(task_lo(env, 'Task 1', processor, start_time=0., wcet=2., period=4.))
-task2 = env.process(task_hi(env, 'Task 2', processor, start_time=1., wcet_lo=2., wcet_hi=3., period=4., lo_tasks=task1))
+task1 = env.process(task_lo(env, 'Task 1', processor, start_time=0., wcet=1., period=4.))
+# task2 = env.process(task_lo(env, 'Task 2', processor, start_time=0., wcet=1., period=6.))
+
+lo_tasks = [task1]
+task3 = env.process(task_hi(env, 'Task 3', processor, start_time=0., wcet_lo=1., wcet_hi=3., period=4., lo_tasks=lo_tasks))
 
 env.run(until=20)
