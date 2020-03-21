@@ -134,11 +134,19 @@ crit_level_lo = True
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
-task1 = env.process(task_lo(env, 'Task 1', processor, start_time=1., wcet=1., period=3.))
-# task2 = env.process(task_lo(env, 'Task 2', processor, start_time=2., wcet=1., period=6.))
+lo_start = [0, 0]
+lo_periods = [3, 4]
+lo_wcets = [1, 1]
+lo_tasks = []
+for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
+    task_name = 'Task LO ' + str(i)
+    print(task_name, period, wcet)
+    lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
-lo_tasks = [task1]
+# task1 = env.process(task_lo(env, 'Task 1', processor, start_time=1., wcet=1., period=3.))
+# task2 = env.process(task_lo(env, 'Task 2', processor, start_time=2., wcet=1., period=6.))
+# lo_tasks = [task1]
 task3 = env.process(
-    task_hi(env, 'Task 3', processor, start_time=0., wcet_lo=2., wcet_hi=3., period=5., lo_tasks=lo_tasks))
+    task_hi(env, 'Task HI', processor, start_time=0., wcet_lo=2., wcet_hi=3., period=5., lo_tasks=lo_tasks))
 
 env.run(until=20)
