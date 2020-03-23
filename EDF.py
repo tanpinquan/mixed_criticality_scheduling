@@ -16,8 +16,8 @@ def task_lo(env, name, proc, start_time, wcet, period):
         execution_time_left = execution_time
         print('%.2f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f' % (env.now, name, deadline, execution_time))
 
-        try:
-            while execution_time_left:
+        while execution_time_left:
+            try:
                 with proc.request(priority=deadline) as req:
 
                     yield req
@@ -29,22 +29,20 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         yield env.timeout(execution_time_left)
                         print('%.2f:\t%s completed' % (env.now, name))
                         execution_time_left = 0
+            except simpy.Interrupt as interrupt:
+                if interrupt.cause:
+                    execution_time_left -= env.now - interrupt.cause.usage_since
+                    if execution_time_left:
+                        print('%.2f:\t%s preempted, time left %d' % (env.now, name, execution_time_left))
+                    else:
+                        print('%.2f:\t%s completed' % (env.now, name))
 
-            if env.now > deadline:
-                print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
-                deadline_met = False
-            else:
-                yield env.timeout(deadline - env.now)
-        except simpy.Interrupt as interrupt:
-            if interrupt.cause:
-                execution_time_left -= env.now - interrupt.cause.usage_since
-                if execution_time_left:
-                    print('%.2f:\t%s preempted, time left %d' % (env.now, name, execution_time_left))
-                else:
-                    print('%.2f:\t%s completed' % (env.now, name))
-            else:
-                execution_time_left = 0
-                print('%.2f:\t%s interrupted by hi crit' % (env.now, name))
+        if env.now > deadline:
+            print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
+            deadline_met = False
+        else:
+            yield env.timeout(deadline - env.now)
+
 
 
 
