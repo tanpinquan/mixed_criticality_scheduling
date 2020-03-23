@@ -51,8 +51,8 @@ crit_level_lo = True
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
-lo_start = [1, 0]
-lo_periods = [3, 5]
+lo_start = [0, 0]
+lo_periods = [2, 4]
 lo_wcets = [1, 2]
 lo_tasks = []
 for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
