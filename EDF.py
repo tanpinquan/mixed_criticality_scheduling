@@ -1,6 +1,7 @@
 import numpy as np
 import simpy
 import random
+import TasksetGenerator
 
 
 def task_lo(env, name, proc, start_time, wcet, period):
@@ -44,20 +45,28 @@ def task_lo(env, name, proc, start_time, wcet, period):
             yield env.timeout(deadline - env.now)
 
 
-
-
 deadline_met = True
 crit_level_lo = True
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
-lo_start = [0, 0]
-lo_periods = [2, 4]
-lo_wcets = [1, 2]
+
+# lo_start = [0, 0]
+# lo_periods = [2, 4]
+# lo_wcets = [1, 2]
+# for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
+#     task_name = 'Task LO ' + str(i)
+#     print(task_name, period, wcet)
+#     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+#
+# env.run(until=20)
+
+tasks, totalUtil = TasksetGenerator.generate_taskset_EDF(min_period=10, max_period=100)
 lo_tasks = []
-for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
+
+for i, (start, period, wcet) in enumerate(tasks):
     task_name = 'Task LO ' + str(i)
-    print(task_name, period, wcet)
+    print(task_name, ':', period, wcet)
     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
-env.run(until=20)
+env.run(until=200)

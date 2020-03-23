@@ -1,6 +1,7 @@
 import numpy as np
 import simpy
 import random
+import TasksetGenerator
 
 
 def task_lo(env, name, proc, start_time, wcet, period):
@@ -83,7 +84,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks):
             execution_time_lo = execution_time
             execution_time_hi = 0
 
-        print('%.2f:\t%s arrived,\t deadline %.2f,\t execution: %.2f,\t lo crit: %s'
+        print('%.2f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f,\t lo crit: %s'
               % (env.now, name, deadline, execution_time, crit_level_lo))
 
         while execution_time_lo > 0:
@@ -148,17 +149,29 @@ crit_level_lo = True
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
-lo_start = [1, 0]
+lo_start = [0, 0]
 lo_periods = [3, 8]
 lo_wcets = [1, 2]
 lo_tasks = []
 for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
     task_name = 'Task LO ' + str(i)
-    print(task_name, period, wcet)
+    print(task_name, ':',  period, wcet)
     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
+hi_start = [0,0]
+hi_periods = [5,6]
+hi_wcets_lo = [2,1]
+hi_wcets_hi = [3,2]
+hi_tasks = []
+for i, (start, period, wcet_lo, wcet_hi) in enumerate(zip(hi_start, hi_periods, hi_wcets_lo, hi_wcets_hi)):
+    task_name = 'Task HI ' + str(len(lo_tasks)+i)
+    print(task_name, ':', period, wcet_lo, wcet_hi)
+    hi_tasks.append(env.process(task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period, lo_tasks=lo_tasks)))
 
-task3 = env.process(
-    task_hi(env, 'Task HI 3', processor, start_time=1., wcet_lo=2., wcet_hi=3., period=5., lo_tasks=lo_tasks))
+# task3 = env.process(
+#     task_hi(env, 'Task HI 3', processor, start_time=1., wcet_lo=2., wcet_hi=3., period=5., lo_tasks=lo_tasks))
 
 env.run(until=30)
+
+
+

@@ -1,6 +1,7 @@
 import numpy as np
 import simpy
 import random
+import TasksetGenerator
 
 
 class Slack:
@@ -94,9 +95,8 @@ def task_lo(env, name, proc, start_time, wcet, period):
                     slack_deadline = env.now + period[-1]
                     print('%.2f:\t%s early rel' % (env.now, name), "\t slack req ", slack_demand, ', slack deadline',
                           slack_deadline)
-                    if slack.reclaim_slack(slack_deadline,slack_demand):
+                    if slack.reclaim_slack(slack_deadline, slack_demand):
                         break
-
 
 
 def task_hi(env, name, proc, start_time, wcet, period):
@@ -166,3 +166,4 @@ for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
 task3 = env.process(task_hi(env, 'Task HI 3', processor, start_time=0., wcet=3., period=5.))
 
 env.run(until=10)
+
