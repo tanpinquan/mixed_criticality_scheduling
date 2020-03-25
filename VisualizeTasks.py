@@ -13,7 +13,7 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, lo_t
     base_height = 1
 
     crit_data = get_crit_list(hi_crit, lo_crit)
-    plt.broken_barh(crit_data, (0, total_tasks*base_height), facecolors='lightgrey')
+    plt.broken_barh(crit_data, (0, (total_tasks+1)*base_height), facecolors='lightgrey')
 
     for i, name in enumerate(lo_task_names):
 
@@ -41,11 +41,11 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, lo_t
         task_duration = list(np.array(task_end[name]) - np.array(task_start[name]))
         plt_data = list(zip(task_start[name], task_duration))
         # c = next(color)
-        plt.broken_barh(plt_data, ((1 * (i + len(lo_task_names))) * base_height, 0.8*base_height), facecolors=color[i + len(lo_task_names)])
+        plt.broken_barh(plt_data, ((1 * (i + len(lo_task_names))+1) * base_height, 0.8*base_height), facecolors=color[i + len(lo_task_names)])
 
         if len(task_arrivals[name]):
-            plt.stem(task_arrivals[name], (i + len(lo_task_names) + 0.9) * base_height * np.ones(len(task_arrivals[name])),
-                     bottom=(i + len(lo_task_names)) * base_height,
+            plt.stem(task_arrivals[name], (i + len(lo_task_names) + 1.9) * base_height * np.ones(len(task_arrivals[name])),
+                     bottom=(i + len(lo_task_names)+1) * base_height,
                      use_line_collection=True, linefmt='C' + str(i + len(lo_task_names)) + '-',
                      basefmt='C' + str(i + len(lo_task_names)) + '-',
                      markerfmt='C' + str(i + len(lo_task_names)) + 'o')

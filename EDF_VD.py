@@ -9,8 +9,17 @@ import matplotlib.pyplot as plt
 def task_lo(env, name, proc, start_time, wcet, period):
     global deadline_met
     yield env.timeout(start_time)
-
+    deadline = env.now
     while deadline_met:
+        while deadline - env.now:
+            try:
+                # print(name, 'WAITING', deadline-env.now)
+                print('%.3f:\t%s WAITING,\t deadline %.2f,\t wait dur: %.2f' % (
+                    env.now, name, deadline, deadline - env.now))
+                yield env.timeout(deadline - env.now)
+            except simpy.Interrupt as interrupt:
+                print('%.3f:\t%s INTERRUPTED, going back to wait' % (env.now, name,))
+
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
         execution_time = wcet
@@ -19,20 +28,24 @@ def task_lo(env, name, proc, start_time, wcet, period):
         execution_time_left = execution_time
 
         if not crit_level_lo:
-            try:
-                print('%.2f:\t%s SUPPRESSED,\t deadline %.2f,\t execution: %.2f' % (
-                    env.now, name, deadline, execution_time))
-                task_suppresses[name].append(env.now)
+            print('%.3f:\t%s SUPPRESSED,\t deadline %.2f,\t execution: %.2f' % (
+                env.now, name, deadline, execution_time))
+            task_suppresses[name].append(env.now)
+        # if not crit_level_lo:
+        #     try:
+        #         print('%.2f:\t%s SUPPRESSED,\t deadline %.2f,\t execution: %.2f' % (
+        #             env.now, name, deadline, execution_time))
+        #         task_suppresses[name].append(env.now)
+        #
+        #         yield env.timeout(deadline - env.now)
+        #     except simpy.Interrupt as interrupt:
+        #         print('%.2f:\t%s SUPPRESSED,\t deadline %.2f,\t execution: %.2f' % (
+        #             env.now, name, deadline, execution_time))
+        #         task_suppresses[name].append(env.now)
+        #         yield env.timeout(deadline - env.now)
 
-                yield env.timeout(deadline - env.now)
-            except simpy.Interrupt as interrupt:
-                print('%.2f:\t%s SUPPRESSED,\t deadline %.2f,\t execution: %.2f' % (
-                    env.now, name, deadline, execution_time))
-                task_suppresses[name].append(env.now)
-                yield env.timeout(deadline - env.now)
-
-        else:
-            print('%.2f:\t%s ARRIVED,\t\t deadline %.2f,\t execution: %.2f' % (env.now, name, deadline, execution_time))
+        if crit_level_lo:
+            print('%.3f:\t%s ARRIVED,\t\t deadline %.2f,\t execution: %.2f' % (env.now, name, deadline, execution_time))
             task_arrivals[name].append(env.now)
             try:
                 while execution_time_left:
@@ -44,11 +57,11 @@ def task_lo(env, name, proc, start_time, wcet, period):
                             # print('test lo', crit_level_lo)
 
                             if deadline_met & crit_level_lo:
-                                print('%.2f:\t%s executing,\t deadline %.2f,\t exec left: %.2f'
+                                print('%.3f:\t%s executing,\t deadline %.2f,\t exec left: %.2f'
                                       % (env.now, name, deadline, execution_time_left))
                                 task_start[name].append(env.now)
                                 yield env.timeout(execution_time_left)
-                                print('%.2f:\t%s completed' % (env.now, name))
+                                print('%.3f:\t%s completed' % (env.now, name))
                                 task_end[name].append(env.now)
                                 execution_time_left = 0
                     # Preemt interrupt
@@ -61,19 +74,25 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         #         task_end[name].append(env.now)
 
                 if env.now > deadline:
-                    print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
+                    print('%.3f:\t%s DEADLINE MISSED' % (env.now, name))
                     deadline_met = False
-                else:
-                    # if crit_level_lo:
-                    print(env.now, 'wait after exec', name)
-                    yield env.timeout(deadline - env.now)
+                # else:
+                #     print(env.now, 'wait after exec', name)
+                #     yield env.timeout(deadline - env.now)
             # Interrupt outside loop if waiting for next task
             except simpy.Interrupt as interrupt:
                 execution_time_left = interrupt_lo(env, interrupt, execution_time_left, deadline, name)
-                if not interrupt.cause:
-                    print(env.now, 'wait after int', name)
-                    yield env.timeout(deadline - env.now)
-
+                # yield env.process(wait_lo(env, deadline-env.now))
+                # if not interrupt.cause:
+                #     # print(env.now, 'wait after int', name)
+                #     # yield env.timeout(deadline - env.now)
+                #
+                #     try:
+                #         print(env.now, 'wait after int', name)
+                #         yield env.timeout(deadline - env.now)
+                #     except simpy.Interrupt as interrupt:
+                #         print('interrupt again')
+                #         yield env.timeout(deadline - env.now)
     print(env.now, 'END ', name)
 
 
@@ -85,17 +104,21 @@ def interrupt_lo(env, interrupt, execution_time_left, deadline, name):
     if interrupt.cause:
         execution_time_left -= env.now - interrupt.cause.usage_since
         if execution_time_left:
-            print('%.2f:\t%s preempted, time left %.2f' % (env.now, name, execution_time_left))
+            print('%.3f:\t%s preempted, time left %.2f' % (env.now, name, execution_time_left))
         else:
-            print('%.2f:\t%s completed' % (env.now, name))
+            print('%.3f:\t%s completed' % (env.now, name))
 
     else:
-        print('%.2f:\t%s interrupted by hi crit' % (env.now, name))
+        print('%.3f:\t%s interrupted by hi crit' % (env.now, name))
 
         # yield env.timeout(deadline - env.now)
         execution_time_left = 0
 
     return execution_time_left
+
+
+def wait_lo(env, duration):
+    yield env.timeout(duration)
 
 
 def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
@@ -124,7 +147,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
             execution_time_lo = execution_time
             execution_time_hi = 0
 
-        print('%.2f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f,\t vir deadline: %2f,\t lo crit: %s'
+        print('%.3f:\t%s arrived,\t\t deadline %.2f,\t execution: %.2f,\t vir deadline: %2f,\t lo crit: %s'
               % (env.now, name, actual_deadline, execution_time, virtual_deadline, crit_level_lo))
         hi_tasks_active.append(name)
         task_arrivals[name].append(env.now)
@@ -136,16 +159,16 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
                     yield req
                     if deadline_met:
-                        print('%.2f:\t%s executing,\t deadline %.2f,\t lo left: %.2f'
+                        print('%.3f:\t%s executing,\t deadline %.2f,\t lo left: %.2f'
                               % (env.now, name, active_deadline, execution_time_lo))
                         task_start[name].append(env.now)
                         yield env.timeout(execution_time_lo)
                         execution_time_lo = execution_time_lo - execution_time_lo
 
                         if execution_time_hi > 0:
-                            print('%.2f:\t%s completed LO execution' % (env.now, name))
+                            print('%.3f:\t%s completed LO execution' % (env.now, name))
                         else:
-                            print('%.2f:\t%s completed' % (env.now, name))
+                            print('%.3f:\t%s completed' % (env.now, name))
                             task_end[name].append(env.now)
 
             except simpy.Interrupt as interrupt:
@@ -153,9 +176,9 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                 task_end[name].append(env.now)
 
                 if execution_time_lo:
-                    print('%.2f:\t%s preempted,\t lo left: %.2f' % (env.now, name, execution_time_lo))
+                    print('%.3f:\t%s preempted,\t lo left: %.2f' % (env.now, name, execution_time_lo))
                 else:
-                    print('%.2f:\t%s completed2' % (env.now, name))
+                    print('%.3f:\t%s completed2' % (env.now, name))
 
         # HI execution part
         while execution_time_hi > 0:
@@ -170,43 +193,47 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                         if crit_level_lo:
                             crit_level_lo = False
                             hi_crit.append(env.now)
-                            print('-----------', env.now, 'HI CRIT')
+                            # print('-----------', env.now, 'HI CRIT caused  by', name)
+                            print('%.3f:\tHI CRIT by %s-------------------' % (env.now, name))
 
                             for task in lo_tasks:
                                 task.interrupt()
                             # lo_tasks.interrupt()
                             # crit_level_lo = False
-                        print('%.2f:\t%s continue,\t\t deadline %.2f,\t hi left: %.2f'
+                        print('%.3f:\t%s continue,\t\t deadline %.2f,\t hi left: %.2f'
                               % (env.now, name, active_deadline, execution_time_hi))
                         yield env.timeout(execution_time_hi)
                         execution_time_hi = 0
 
-                        print('%.2f:\t%s completed' % (env.now, name))
+                        print('%.3f:\t%s completed' % (env.now, name))
                         task_end[name].append(env.now)
 
             except simpy.Interrupt as interrupt:
                 task_end[name].append(env.now)
                 execution_time_hi -= env.now - interrupt.cause.usage_since
                 if execution_time_hi:
-                    print('%.2f:\t%s preempted,\t hi left %.2f' % (env.now, name, execution_time_hi))
+                    print('%.3f:\t%s preempted,\t hi left %.2f' % (env.now, name, execution_time_hi))
                 else:
-                    print('%.2f:\t%s completed2' % (env.now, name))
+                    print('%.3f:\t%s completed2' % (env.now, name))
 
         if env.now > actual_deadline:
-            print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
+            print('%.3f:\t%s DEADLINE MISSED' % (env.now, name))
             deadline_met = False
         else:
             hi_tasks_active.remove(name)
             # print(hi_tasks_active)
             if (len(hi_tasks_active) == 0) & (not crit_level_lo):
-                print('-----------', env.now, 'LO CRIT')
+                print('%.3f: LO CRIT-----------------------' % env.now)
+                # print('-----------', env.now, 'LO CRIT')
                 crit_level_lo = True
                 lo_crit.append(env.now)
 
             yield env.timeout(actual_deadline - env.now)
 
 
+# random.seed(112)
 random.seed(0)
+
 deadline_met = True
 crit_level_lo = True
 
@@ -218,13 +245,60 @@ task_start = {}
 task_end = {}
 hi_crit = []
 lo_crit = []
-
-lo_start = [0, 0]
-lo_periods = [3, 8]
-lo_wcets = [1, 2]
-lo_tasks = []
 lo_task_names = []
-for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
+hi_tasks_active = []
+hi_tasks_names = []
+
+# lo_start = [0, 0]
+# lo_periods = [4, 8]
+# lo_wcets = [1, 2]
+# lo_tasks = []
+# util_lo = np.sum(np.array(lo_wcets)/np.array(lo_periods))
+# for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
+#     task_name = 'Task LO ' + str(i)
+#     lo_task_names.append(task_name)
+#     task_arrivals[task_name] = []
+#     task_suppresses[task_name] = []
+#     task_start[task_name] = []
+#     task_end[task_name] = []
+#     print(task_name, ':', period, wcet)
+#     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+#
+# hi_start = [0, 0]
+# hi_periods = [5, 6]
+# hi_wcets_lo = [1, 1]
+# hi_wcets_hi = [3, 2]
+# hi_x = 0.8
+# hi_tasks = []
+
+# util_hi_lo = np.sum(np.array(hi_wcets_lo)/np.array(hi_periods))
+# hi_x = util_hi_lo / (1 - util_lo)
+#
+# for i, (start, period, wcet_lo, wcet_hi) in enumerate(zip(hi_start, hi_periods, hi_wcets_lo, hi_wcets_hi)):
+#     task_name = 'Task HI ' + str(len(lo_tasks) + i)
+#     hi_tasks_names.append(task_name)
+#     task_arrivals[task_name] = []
+#     task_start[task_name] = []
+#     task_end[task_name] = []
+#     print(task_name, ':', period, wcet_lo, wcet_hi)
+#     hi_tasks.append(env.process(
+#         task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
+#                 lo_tasks=lo_tasks, x=hi_x)))
+#
+# env.run(until=50)
+#
+# VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses, task_start=task_start,
+#                                  task_end=task_end, lo_task_names=lo_task_names, hi_task_names=hi_tasks_names,
+#                                  hi_crit=hi_crit, lo_crit=lo_crit)
+
+#
+lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.1,
+                                                                        max_util=0.2)
+
+lo_tasks_list = []
+hi_tasks_list = []
+
+for i, (start, period, wcet) in enumerate(lo_tasks):
     task_name = 'Task LO ' + str(i)
     lo_task_names.append(task_name)
     task_arrivals[task_name] = []
@@ -232,52 +306,22 @@ for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
     task_start[task_name] = []
     task_end[task_name] = []
     print(task_name, ':', period, wcet)
-    lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+    lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
-hi_start = [0, 0]
-hi_periods = [5, 6]
-hi_wcets_lo = [2, 1]
-hi_wcets_hi = [3, 2]
-hi_x = 0.8
-hi_tasks = []
-hi_tasks_active = []
-hi_tasks_names = []
-for i, (start, period, wcet_lo, wcet_hi) in enumerate(zip(hi_start, hi_periods, hi_wcets_lo, hi_wcets_hi)):
-    task_name = 'Task HI ' + str(len(lo_tasks) + i)
+for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
+    task_name = 'Task HI ' + str(i)
     hi_tasks_names.append(task_name)
     task_arrivals[task_name] = []
     task_start[task_name] = []
     task_end[task_name] = []
     print(task_name, ':', period, wcet_lo, wcet_hi)
-    hi_tasks.append(env.process(
+    hi_tasks_list.append(env.process(
         task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
-                lo_tasks=lo_tasks, x=hi_x)))
+                lo_tasks=lo_tasks_list, x=x)))
 
-env.run(until=50)
+print('\n')
 
+env.run(until=30)
 VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses, task_start=task_start,
                                  task_end=task_end, lo_task_names=lo_task_names, hi_task_names=hi_tasks_names,
                                  hi_crit=hi_crit, lo_crit=lo_crit)
-
-#
-# lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.1,
-#                                                                         max_util=0.2)
-#
-# lo_tasks_list = []
-# hi_tasks_list = []
-#
-# for i, (start, period, wcet) in enumerate(lo_tasks):
-#     task_name = 'Task LO ' + str(i)
-#     print(task_name, ':', period, wcet)
-#     lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
-#
-# for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
-#     task_name = 'Task HI ' + str(i)
-#     print(task_name, ':', period, wcet_lo, wcet_hi)
-#     hi_tasks_list.append(env.process(
-#         task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
-#                 lo_tasks=lo_tasks_list, x=x)))
-#
-# print('\n')
-#
-# env.run(until=30)
