@@ -11,7 +11,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
     yield env.timeout(start_time)
     deadline = env.now
     while deadline_met:
-        while deadline - env.now:
+        while (deadline - env.now) > 0:
             try:
                 # print(name, 'WAITING', deadline-env.now)
                 print('%.3f:\t%s WAITING,\t deadline %.2f,\t wait dur: %.2f' % (
@@ -107,6 +107,7 @@ def interrupt_lo(env, interrupt, execution_time_left, deadline, name):
             print('%.3f:\t%s preempted, time left %.2f' % (env.now, name, execution_time_left))
         else:
             print('%.3f:\t%s completed' % (env.now, name))
+            task_complete[name].append(env.now)
 
     else:
         print('%.3f:\t%s interrupted by hi crit' % (env.now, name))
@@ -127,8 +128,18 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
     global hi_tasks_active
 
     yield env.timeout(start_time)
+    actual_deadline = env.now
 
     while deadline_met:
+        while (actual_deadline - env.now) > 0:
+            try:
+                # print(name, 'WAITING', deadline-env.now)
+                print('%.3f:\t%s WAITING,\t deadline %.2f,\t wait dur: %.2f' % (
+                    env.now, name, actual_deadline, actual_deadline - env.now))
+                yield env.timeout(actual_deadline - env.now)
+            except simpy.Interrupt as interrupt:
+                print('%.3f:\t%s INTERRUPTED, going back to wait' % (env.now, name,))
+
         execution_time = random.uniform(0.1, wcet_hi)
         # execution_time = wcet_hi
         arrival_time = env.now
@@ -170,6 +181,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                         else:
                             print('%.3f:\t%s completed' % (env.now, name))
                             task_end[name].append(env.now)
+                            task_complete[name].append(env.now)
 
             except simpy.Interrupt as interrupt:
                 execution_time_lo -= env.now - interrupt.cause.usage_since
@@ -179,6 +191,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                     print('%.3f:\t%s preempted,\t lo left: %.2f' % (env.now, name, execution_time_lo))
                 else:
                     print('%.3f:\t%s completed2' % (env.now, name))
+                    task_complete[name].append(env.now)
 
         # HI execution part
         while execution_time_hi > 0:
@@ -207,6 +220,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
                         print('%.3f:\t%s completed' % (env.now, name))
                         task_end[name].append(env.now)
+                        task_complete[name].append(env.now)
 
             except simpy.Interrupt as interrupt:
                 task_end[name].append(env.now)
@@ -215,6 +229,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                     print('%.3f:\t%s preempted,\t hi left %.2f' % (env.now, name, execution_time_hi))
                 else:
                     print('%.3f:\t%s completed2' % (env.now, name))
+                    task_complete[name].append(env.now)
 
         if env.now > actual_deadline:
             print('%.3f:\t%s DEADLINE MISSED' % (env.now, name))
@@ -228,11 +243,11 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                 crit_level_lo = True
                 lo_crit.append(env.now)
 
-            yield env.timeout(actual_deadline - env.now)
+            # yield env.timeout(actual_deadline - env.now)
 
 
 # random.seed(112)
-random.seed(0)
+random.seed(1)
 
 deadline_met = True
 crit_level_lo = True
@@ -243,6 +258,7 @@ task_arrivals = {}
 task_suppresses = {}
 task_start = {}
 task_end = {}
+task_complete = {}
 hi_crit = []
 lo_crit = []
 lo_task_names = []
@@ -305,6 +321,7 @@ for i, (start, period, wcet) in enumerate(lo_tasks):
     task_suppresses[task_name] = []
     task_start[task_name] = []
     task_end[task_name] = []
+    task_complete[task_name] = []
     print(task_name, ':', period, wcet)
     lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
@@ -314,6 +331,7 @@ for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
     task_arrivals[task_name] = []
     task_start[task_name] = []
     task_end[task_name] = []
+    task_complete[task_name] = []
     print(task_name, ':', period, wcet_lo, wcet_hi)
     hi_tasks_list.append(env.process(
         task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
