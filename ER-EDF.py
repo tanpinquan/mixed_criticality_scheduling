@@ -85,6 +85,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         yield env.timeout(execution_time_left)
                         print('%.2f:\t%s completed' % (env.now, name))
                         task_end[name].append(env.now)
+                        task_complete[name].append(env.now)
                         execution_time_left = 0
             except simpy.Interrupt as interrupt:
                 if interrupt.cause:
@@ -94,6 +95,8 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         print('%.2f:\t%s preempted, time left %.2f' % (env.now, name, execution_time_left))
                     else:
                         print('%.2f:\t%s completed' % (env.now, name))
+                        task_complete[name].append(env.now)
+                        task_complete[name].append(env.now)
 
         if env.now > deadline:
             print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
@@ -143,6 +146,7 @@ def task_hi(env, name, proc, start_time, wcet, period):
                         yield env.timeout(execution_time_left)
                         print('%.2f:\t%s completed' % (env.now, name))
                         task_end[name].append(env.now)
+                        task_complete[name].append(env.now)
                         execution_time_left = 0
             except simpy.Interrupt as interrupt:
                 if interrupt.cause:
@@ -152,6 +156,7 @@ def task_hi(env, name, proc, start_time, wcet, period):
                         print('%.2f:\t%s preempted, time left %d' % (env.now, name, execution_time_left))
                     else:
                         print('%.2f:\t%s completed' % (env.now, name))
+                        task_complete[name].append(env.now)
 
         if env.now > deadline:
             print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
@@ -168,7 +173,7 @@ slack = Slack()
 # slack.add_slack(25, 2)
 # slack.add_slack(10, 6)
 # slack.add_slack(35, 7)
-random.seed(1)
+random.seed(5)
 deadline_met = True
 crit_level_lo = True
 
@@ -176,6 +181,7 @@ task_arrivals = {}
 task_start = {}
 task_early_release = {}
 task_end = {}
+task_complete = {}
 lo_task_names = []
 hi_tasks_active = []
 hi_tasks_names = []
@@ -236,6 +242,7 @@ for i, (start, period, wcet) in enumerate(lo_tasks_ER):
     task_start[task_name] = []
     task_early_release[task_name] = []
     task_end[task_name] = []
+    task_complete[task_name] = []
     print(task_name, period, wcet)
 
     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
@@ -251,6 +258,7 @@ for i, (start, period, wcet) in enumerate(hi_tasks_ER):
     task_arrivals[task_name] = []
     task_start[task_name] = []
     task_end[task_name] = []
+    task_complete[task_name] = []
     print(task_name, period, wcet)
 
     task3 = env.process(task_hi(env, task_name, processor, start_time=start, wcet=wcet, period=period))
@@ -259,7 +267,9 @@ env.run(until=30)
 
 VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release,
                                  task_start=task_start,
-                                 task_end=task_end, lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, )
+                                 task_end=task_end,
+                                 task_complete=task_complete,
+                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, )
 
 
 # lo_tasks, hi_tasks, util = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10, min_util=0.1,
