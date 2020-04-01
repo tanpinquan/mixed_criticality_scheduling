@@ -113,10 +113,13 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         print('%.2f:\t%s EARLY RELEASED' % (env.now, name))
                         if i < len(release_points) - 1:
                             task_early_release[name].append(env.now)
-                        else:
-                            task_arrivals[name].append(env.now)
+                        # else:
+                        # task_arrivals[name].append(env.now)
 
                         break
+                    if i == len(release_points)-1:
+                        task_arrivals[name].append(env.now)
+
 
 
 def task_hi(env, name, proc, start_time, wcet, period):
@@ -173,7 +176,7 @@ slack = Slack()
 # slack.add_slack(25, 2)
 # slack.add_slack(10, 6)
 # slack.add_slack(35, 7)
-random.seed(5)
+# random.seed(1111)
 deadline_met = True
 crit_level_lo = True
 
