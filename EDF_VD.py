@@ -22,7 +22,11 @@ def task_lo(env, name, proc, start_time, wcet, period):
 
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
-        execution_time = wcet
+        # execution_time = wcet
+        execution_time = random.normalvariate(mu=wcet/2, sigma=wcet/2)
+        execution_time = abs(execution_time)
+        execution_time = min(execution_time,wcet)
+
         arrival_time = env.now
         deadline = arrival_time + period
         execution_time_left = execution_time
@@ -116,7 +120,9 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
             except simpy.Interrupt as interrupt:
                 print('%.3f:\t%s INTERRUPTED, going back to wait' % (env.now, name,))
 
-        execution_time = random.uniform(0.1, wcet_hi)
+        # execution_time = random.uniform(0.1, wcet_hi)
+        execution_time = random.normalvariate(mu=wcet_lo/2, sigma=wcet_hi-wcet_lo)
+        execution_time = abs(execution_time)
         # execution_time = wcet_hi
         arrival_time = env.now
         actual_deadline = arrival_time + period
