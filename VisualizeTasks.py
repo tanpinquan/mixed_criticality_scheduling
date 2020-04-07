@@ -5,8 +5,7 @@ from cycler import cycler
 
 
 def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task_complete, lo_task_names, hi_task_names,
-                      hi_crit,
-                      lo_crit):
+                      hi_crit, lo_crit, xlim):
     total_tasks = len(lo_task_names) + len(hi_task_names)
     color = cm.get_cmap('tab10').colors
     plt.rc('axes', prop_cycle=(cycler('color', color)))
@@ -85,6 +84,10 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
                                         basefmt='C' + str(i + len(lo_task_names)) + '-',
                                         markerfmt='C' + str(i + len(lo_task_names)) + 'o')
             plt.setp(markerline, markersize=5, marker=9)
+
+    plt.xlim(-0.5,xlim)
+    plt.yticks([])
+    plt.ylabel('LO-crit                                   HI-crit           ')
     plt.show()
 
 

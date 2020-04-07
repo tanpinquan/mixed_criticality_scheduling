@@ -138,3 +138,13 @@ def convert_VD_to_ER(lo_tasks, hi_tasks, utils, er_step):
     lo_tasks = list(zip(lo_starts.T, lo_periods.T, lo_wcets.T))
 
     return lo_tasks, hi_tasks, util
+
+
+def generate_taskset_ubound(min_period, max_period, min_util, max_util):
+    periods = []
+    wcets = []
+    starts = []
+    total_util = 0
+    
+    return periods, wcets, total_util
+

@@ -4,7 +4,7 @@ import random
 import TasksetGenerator
 import VisualizeTasks
 import matplotlib.pyplot as plt
-
+import pickle
 
 def task_lo(env, name, proc, start_time, wcet, period):
     global deadline_met
@@ -23,9 +23,9 @@ def task_lo(env, name, proc, start_time, wcet, period):
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
         # execution_time = wcet
-        execution_time = random.normalvariate(mu=wcet/2, sigma=wcet/2)
-        execution_time = abs(execution_time)
-        execution_time = min(execution_time,wcet)
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = max(0.01, execution_time)
+        execution_time = min(execution_time, wcet)
 
         arrival_time = env.now
         deadline = arrival_time + period
@@ -121,8 +121,9 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                 print('%.3f:\t%s INTERRUPTED, going back to wait' % (env.now, name,))
 
         # execution_time = random.uniform(0.1, wcet_hi)
-        execution_time = random.normalvariate(mu=wcet_lo/2, sigma=wcet_hi-wcet_lo)
-        execution_time = abs(execution_time)
+        execution_time = random.normalvariate(mu=3 * wcet_lo / 4, sigma=2 * wcet_lo / 2)
+        execution_time = max(0.01, execution_time)
+        execution_time = min(execution_time, wcet_hi)
         # execution_time = wcet_hi
         arrival_time = env.now
         actual_deadline = arrival_time + period
@@ -228,8 +229,8 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
             # yield env.timeout(actual_deadline - env.now)
 
 
-# random.seed(112)
-# random.seed(5)
+# random.seed(2)
+random.seed(1)
 
 deadline_met = True
 crit_level_lo = True
@@ -325,4 +326,7 @@ env.run(until=30)
 VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses, task_start=task_start,
                                  task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
                                  hi_task_names=hi_tasks_names,
-                                 hi_crit=hi_crit, lo_crit=lo_crit)
+                                 hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
+
+with open('train.pickle', 'rb') as f:
+    task_arrivals, task_suppresses, task_start, task_end, task_complete, lo_task_names, hi_tasks_names, hi_crit, lo_crit = pickle.load(f)
