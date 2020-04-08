@@ -200,46 +200,48 @@ def check_ubound_cond(util_lo, util_hi_hi, util_hi_lo, ubound):
     # return cond1 & cond2
 
 
-ubound_arr = np.linspace(0.3, 1.2)
-# ubound_arr = [1]
-accep_arr_vd = np.zeros([len(ubound_arr)])
-accep_ratio_edf = np.zeros([len(ubound_arr)])
-min_ratio = 0.1
-max_ratio = 0.3
-n_tasks = 1000
+if __name__ == "__main__":
 
-util_hi_hi_arr = []
-util_lo_arr = []
-for i, ubound in enumerate(ubound_arr):
-    for j in range(n_tasks):
-        lo_tasks, hi_tasks, utils = generate_taskset_ubound(min_period=1, max_period=10, min_util=0.02, max_util=0.2,
-                                                            min_ratio=min_ratio,
-                                                            max_ratio=max_ratio, ubound=ubound)
-        util_lo = utils[0]
-        util_hi_lo = utils[1]
-        util_hi_hi = utils[2]
+    ubound_arr = np.linspace(0.3, 1.2)
+    # ubound_arr = [1]
+    accep_arr_vd = np.zeros([len(ubound_arr)])
+    accep_ratio_edf = np.zeros([len(ubound_arr)])
+    min_ratio = 0.1
+    max_ratio = 0.3
+    n_tasks = 1000
 
-        util_hi_hi_arr.append(util_hi_hi)
-        util_lo_arr.append(util_lo)
+    util_hi_hi_arr = []
+    util_lo_arr = []
+    for i, ubound in enumerate(ubound_arr):
+        for j in range(n_tasks):
+            lo_tasks, hi_tasks, utils = generate_taskset_ubound(min_period=1, max_period=10, min_util=0.02, max_util=0.2,
+                                                                min_ratio=min_ratio,
+                                                                max_ratio=max_ratio, ubound=ubound)
+            util_lo = utils[0]
+            util_hi_lo = utils[1]
+            util_hi_hi = utils[2]
 
-        if check_EDF_VD_cond(util_lo, util_hi_hi, util_hi_lo):
-            accep_arr_vd[i] += 1
-        if check_EDF_cond(util_lo, util_hi_hi):
-            accep_ratio_edf[i] += 1
+            util_hi_hi_arr.append(util_hi_hi)
+            util_lo_arr.append(util_lo)
 
-accep_arr_vd = accep_arr_vd/n_tasks
-accep_ratio_edf = accep_ratio_edf/n_tasks
+            if check_EDF_VD_cond(util_lo, util_hi_hi, util_hi_lo):
+                accep_arr_vd[i] += 1
+            if check_EDF_cond(util_lo, util_hi_hi):
+                accep_ratio_edf[i] += 1
+
+    accep_arr_vd = accep_arr_vd/n_tasks
+    accep_ratio_edf = accep_ratio_edf/n_tasks
 
 
-plt.figure(figsize=(6,3))
-plt.plot(ubound_arr, accep_ratio_edf)
-plt.plot(ubound_arr, accep_arr_vd)
-plt.xlabel('Ubound')
-plt.ylabel('Acceptance Ratio')
-plt.legend(['Regular EDF', 'EDF-VD'])
-plt.title(f'r ∈ [{min_ratio},{max_ratio}]')
-plt.savefig('EDF_VD_acceptance ratio', bbox_inches = 'tight')
-plt.show()
+    plt.figure(figsize=(6,3))
+    plt.plot(ubound_arr, accep_ratio_edf)
+    plt.plot(ubound_arr, accep_arr_vd)
+    plt.xlabel('Ubound')
+    plt.ylabel('Acceptance Ratio')
+    plt.legend(['Regular EDF', 'EDF-VD'])
+    plt.title(f'r ∈ [{min_ratio},{max_ratio}]')
+    plt.savefig('EDF_VD_acceptance ratio', bbox_inches = 'tight')
+    plt.show()
 
-print(np.mean(np.array(util_lo_arr)))
-print(np.mean(np.array(util_hi_hi_arr)))
+    print(np.mean(np.array(util_lo_arr)))
+    print(np.mean(np.array(util_hi_hi_arr)))

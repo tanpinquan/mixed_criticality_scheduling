@@ -6,6 +6,7 @@ import VisualizeTasks
 import matplotlib.pyplot as plt
 import pickle
 
+
 def task_lo(env, name, proc, start_time, wcet, period):
     global deadline_met
     yield env.timeout(start_time)
@@ -231,69 +232,76 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
 # random.seed(2)
 # random.seed(1)
+avg_service_periods = []
+lo_task_periods = []
+run_dur = 100
 
-deadline_met = True
-crit_level_lo = True
+for sched in range(1000):
+    deadline_met = True
+    crit_level_lo = True
 
-env = simpy.Environment()
-processor = simpy.PreemptiveResource(env, capacity=1)
-task_arrivals = {}
-task_suppresses = {}
-task_start = {}
-task_end = {}
-task_complete = {}
-hi_crit = []
-lo_crit = []
-lo_task_names = []
-hi_tasks_active = []
-hi_tasks_names = []
+    env = simpy.Environment()
+    processor = simpy.PreemptiveResource(env, capacity=1)
+    task_arrivals = {}
+    task_suppresses = {}
+    task_start = {}
+    task_end = {}
+    task_complete = {}
+    hi_crit = []
+    lo_crit = []
+    lo_task_names = []
+    hi_tasks_active = []
+    hi_tasks_names = []
+
+    lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.02,
+                                                                            max_util=0.2, min_ratio=0.3, max_ratio=0.5)
+
+    lo_tasks_list = []
+    hi_tasks_list = []
+
+    for i, (start, period, wcet) in enumerate(lo_tasks):
+        task_name = 'Task LO ' + str(i)
+        lo_task_names.append(task_name)
+        task_arrivals[task_name] = []
+        task_suppresses[task_name] = []
+        task_start[task_name] = []
+        task_end[task_name] = []
+        task_complete[task_name] = []
+        print(task_name, ':', period, wcet)
+        lo_tasks_list.append(
+            env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+
+    for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
+        task_name = 'Task HI ' + str(i)
+        hi_tasks_names.append(task_name)
+        task_arrivals[task_name] = []
+        task_start[task_name] = []
+        task_end[task_name] = []
+        task_complete[task_name] = []
+        print(task_name, ':', period, wcet_lo, wcet_hi)
+        hi_tasks_list.append(env.process(
+            task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
+                    lo_tasks=lo_tasks_list, x=x)))
+
+    print('\n')
+    env.run(until=run_dur)
+    # VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses,
+    #                                  task_start=task_start,
+    #                                  task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
+    #                                  hi_task_names=hi_tasks_names,
+    #                                  hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
+    lo_task_completions = 0
+    for i, task in enumerate(lo_task_names):
+        print(task, len(task_complete[task]), task_complete[task])
+        lo_task_completions = len(task_complete[task])
+        lo_task_periods.append(lo_tasks[i][1])
+        if lo_task_completions:
+            avg_service_periods.append(run_dur / lo_task_completions)
+        else:
+            avg_service_periods.append(run_dur)
 
 
-lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.1,
-                                                                        max_util=0.2)
 
-lo_tasks_list = []
-hi_tasks_list = []
-
-for i, (start, period, wcet) in enumerate(lo_tasks):
-    task_name = 'Task LO ' + str(i)
-    lo_task_names.append(task_name)
-    task_arrivals[task_name] = []
-    task_suppresses[task_name] = []
-    task_start[task_name] = []
-    task_end[task_name] = []
-    task_complete[task_name] = []
-    print(task_name, ':', period, wcet)
-    lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
-
-for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
-    task_name = 'Task HI ' + str(i)
-    hi_tasks_names.append(task_name)
-    task_arrivals[task_name] = []
-    task_start[task_name] = []
-    task_end[task_name] = []
-    task_complete[task_name] = []
-    print(task_name, ':', period, wcet_lo, wcet_hi)
-    hi_tasks_list.append(env.process(
-        task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
-                lo_tasks=lo_tasks_list, x=x)))
-
-print('\n')
-
-env.run(until=30)
-VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses, task_start=task_start,
-                                 task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
-                                 hi_task_names=hi_tasks_names,
-                                 hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
-
-lo_task_completions = 0
-for task in lo_task_names:
-    print(task, len(task_complete[task]), task_complete[task])
-    lo_task_completions += len(task_complete[task])
-
-avg_completions = lo_task_completions/len(lo_task_names)
-
-print('average completions per task', avg_completions, 'expected completions', 30/5.5)
-
-# with open('train.pickle', 'rb') as f:
-#     task_arrivals, task_suppresses, task_start, task_end, task_complete, lo_task_names, hi_tasks_names, hi_crit, lo_crit = pickle.load(f)
+avg_service_period = np.mean(avg_service_periods)
+avg_period = np.mean(lo_task_periods)
+print('average serive period', avg_service_period, 'avg task period', avg_period)
