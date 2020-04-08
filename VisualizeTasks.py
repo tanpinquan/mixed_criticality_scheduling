@@ -54,7 +54,6 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
             plt.setp(markerline, markersize=5, marker=9)
 
     for i, name in enumerate(hi_task_names):
-        print(name)
         task_start[name], task_end[name] = clean_end_timing(task_start[name], task_end[name])
 
         task_duration = list(np.array(task_end[name]) - np.array(task_start[name]))

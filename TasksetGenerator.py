@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def generate_taskset_EDF(min_period, max_period, min_util, max_util):
     periods = []
@@ -19,7 +21,11 @@ def generate_taskset_EDF(min_period, max_period, min_util, max_util):
     return list(zip(starts, periods, wcets)), total_util
 
 
-def generate_taskset_EDF_VD(min_period, max_period, min_util, max_util):
+def check_EDF_cond(util_lo, util_hi_hi):
+    return util_hi_hi + util_lo < 1
+
+
+def generate_taskset_EDF_VD(min_period, max_period, min_util, max_util, min_ratio=0.3, max_ratio=0.5):
     lo_periods = []
     lo_wcets = []
     lo_starts = []
@@ -36,7 +42,7 @@ def generate_taskset_EDF_VD(min_period, max_period, min_util, max_util):
         hi_test = random.uniform(0, 1) > 0.5
         if hi_test:
             task_util_hi = random.uniform(min_util, max_util)
-            lo_ratio = random.uniform(0.3, 0.5)
+            lo_ratio = random.uniform(min_ratio, max_ratio)
             task_util_lo = lo_ratio * task_util_hi
             schedule_valid = check_EDF_VD_cond(util_lo, util_hi_hi + task_util_hi, util_hi_lo + task_util_lo)
             if schedule_valid:
@@ -140,11 +146,100 @@ def convert_VD_to_ER(lo_tasks, hi_tasks, utils, er_step):
     return lo_tasks, hi_tasks, util
 
 
-def generate_taskset_ubound(min_period, max_period, min_util, max_util):
-    periods = []
-    wcets = []
-    starts = []
-    total_util = 0
-    
-    return periods, wcets, total_util
+def generate_taskset_ubound(min_period, max_period, min_util, max_util, min_ratio, max_ratio, ubound):
+    lo_periods = []
+    lo_wcets = []
+    lo_starts = []
+    hi_periods = []
+    hi_hi_wcets = []
+    hi_lo_wcets = []
+    hi_starts = []
+    util_lo = 0
+    util_hi_hi = 0
+    util_hi_lo = 0
+    schedule_valid = True
+    while schedule_valid:
+        # print(util_lo, util_hi_lo, util_hi_hi)
+        hi_test = random.uniform(0, 1) > 0.5
+        if hi_test:
+            task_util_hi = random.uniform(min_util, max_util)
+            lo_ratio = random.uniform(min_ratio, max_ratio)
+            task_util_lo = lo_ratio * task_util_hi
+            hi_periods.append(random.uniform(min_period, max_period))
+            hi_hi_wcets.append(task_util_hi * hi_periods[-1])
+            hi_lo_wcets.append(lo_ratio * hi_hi_wcets[-1])
+            hi_starts.append(0)
+            util_hi_lo += task_util_lo
+            util_hi_hi += task_util_hi
 
+            schedule_valid = check_ubound_cond(util_lo, util_hi_hi, util_hi_lo, ubound)
+            # if schedule_valid:
+
+        else:
+            task_util_lo = random.uniform(min_util, max_util)
+            lo_periods.append(random.uniform(min_period, max_period))
+            lo_wcets.append(task_util_lo * lo_periods[-1])
+            lo_starts.append(0)
+            util_lo += task_util_lo
+            schedule_valid = check_ubound_cond(util_lo, util_hi_hi, util_hi_lo, ubound)
+            # if schedule_valid:
+
+    lo_tasks = list(zip(lo_starts, lo_periods, lo_wcets))
+    hi_tasks = list(zip(hi_starts, hi_periods, hi_lo_wcets, hi_hi_wcets))
+    utils = (util_lo, util_hi_lo, util_hi_hi)
+
+    return lo_tasks, hi_tasks, utils
+
+
+def check_ubound_cond(util_lo, util_hi_hi, util_hi_lo, ubound):
+    u1 = util_hi_hi
+    u2 = util_lo + util_hi_lo
+    # print(u1, u2)
+    return max(u1, u2) < ubound
+
+    # return cond1 & cond2
+
+
+ubound_arr = np.linspace(0.3, 1.2)
+# ubound_arr = [1]
+accep_arr_vd = np.zeros([len(ubound_arr)])
+accep_ratio_edf = np.zeros([len(ubound_arr)])
+min_ratio = 0.1
+max_ratio = 0.3
+n_tasks = 1000
+
+util_hi_hi_arr = []
+util_lo_arr = []
+for i, ubound in enumerate(ubound_arr):
+    for j in range(n_tasks):
+        lo_tasks, hi_tasks, utils = generate_taskset_ubound(min_period=1, max_period=10, min_util=0.02, max_util=0.2,
+                                                            min_ratio=min_ratio,
+                                                            max_ratio=max_ratio, ubound=ubound)
+        util_lo = utils[0]
+        util_hi_lo = utils[1]
+        util_hi_hi = utils[2]
+
+        util_hi_hi_arr.append(util_hi_hi)
+        util_lo_arr.append(util_lo)
+
+        if check_EDF_VD_cond(util_lo, util_hi_hi, util_hi_lo):
+            accep_arr_vd[i] += 1
+        if check_EDF_cond(util_lo, util_hi_hi):
+            accep_ratio_edf[i] += 1
+
+accep_arr_vd = accep_arr_vd/n_tasks
+accep_ratio_edf = accep_ratio_edf/n_tasks
+
+
+plt.figure(figsize=(6,3))
+plt.plot(ubound_arr, accep_ratio_edf)
+plt.plot(ubound_arr, accep_arr_vd)
+plt.xlabel('Ubound')
+plt.ylabel('Acceptance Ratio')
+plt.legend(['Regular EDF', 'EDF-VD'])
+plt.title(f'r ∈ [{min_ratio},{max_ratio}]')
+plt.savefig('EDF_VD_acceptance ratio', bbox_inches = 'tight')
+plt.show()
+
+print(np.mean(np.array(util_lo_arr)))
+print(np.mean(np.array(util_hi_hi_arr)))
