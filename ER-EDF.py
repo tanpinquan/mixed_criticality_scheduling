@@ -62,7 +62,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
     while deadline_met & crit_level_lo:
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
-        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 8)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet)
         # execution_time = wcet
@@ -120,10 +120,10 @@ def task_lo(env, name, proc, start_time, wcet, period):
                             task_early_release[name].append(env.now)
                         # else:
                         # task_arrivals[name].append(env.now)
-
+                        if i == len(release_points) - 1:
+                            task_arrivals[name].append(env.now)
                         break
-                    if i == len(release_points) - 1:
-                        task_arrivals[name].append(env.now)
+
 
 
 def task_hi(env, name, proc, start_time, wcet, period):
@@ -132,7 +132,7 @@ def task_hi(env, name, proc, start_time, wcet, period):
 
     while deadline_met & crit_level_lo:
         # execution_time = random.uniform(0.1, wcet)
-        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 8)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet)
         # execution_time = wcet
@@ -183,7 +183,7 @@ slack = Slack()
 # slack.add_slack(25, 2)
 # slack.add_slack(10, 6)
 # slack.add_slack(35, 7)
-random.seed(1)
+random.seed(8)
 deadline_met = True
 crit_level_lo = True
 
@@ -207,8 +207,8 @@ processor = simpy.PreemptiveResource(env, capacity=1)
 #                                                                       er_step=0.1)
 
 lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10,
-                                                                                min_util=0.1, max_util=0.2,
-                                                                                er_step=0.1, num_er=5)
+                                                                                min_util=0.02, max_util=0.2,
+                                                                                er_step=1, num_er=1)
 
 lo_tasks_list = []
 
@@ -247,7 +247,7 @@ VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release
                                  task_start=task_start,
                                  task_end=task_end,
                                  task_complete=task_complete,
-                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, )
+                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, xlim=30)
 
 # lo_tasks, hi_tasks, util = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10, min_util=0.1,
 #                                                                         max_util=0.2, period_mult=5)

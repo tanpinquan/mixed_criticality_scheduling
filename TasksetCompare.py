@@ -41,6 +41,8 @@ plt.show()
 
 print(np.mean(task_length), np.mean(task_length_edf_vd))
 print(np.mean(lo_task_length_edf_vd), np.mean(hi_task_length_edf_vd))
+
+
 '''ER-EDF'''
 min_ratio = 0.3
 max_ratio = 0.5
@@ -50,7 +52,7 @@ hi_task_length_er_edf = []
 for i in range(10000):
     lo_tasks, hi_tasks, total_util = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10,
                                                                             min_util=0.02, max_util=0.2,
-                                                                            period_mult=2, er_step=1, num_er=1)
+                                                                            period_mult=2, er_step=1, num_er=5)
     task_length_er_edf.append(len(lo_tasks)+len(hi_tasks))
     lo_task_length_er_edf.append(len(lo_tasks))
     hi_task_length_er_edf.append(len(hi_tasks))

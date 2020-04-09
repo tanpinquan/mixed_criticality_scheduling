@@ -23,7 +23,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
         # execution_time = wcet
-        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 8)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet)
 

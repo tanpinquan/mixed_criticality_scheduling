@@ -2,6 +2,7 @@ import numpy as np
 import simpy
 import random
 import TasksetGenerator
+from scipy.stats import norm
 import VisualizeTasks
 import matplotlib.pyplot as plt
 import pickle
@@ -24,7 +25,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
         # execution_time = wcet
-        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 8)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet)
 
@@ -103,7 +104,7 @@ def wait_lo(env, duration):
     yield env.timeout(duration)
 
 
-def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
+def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x, prob_within=0.7):
     global deadline_met
     global crit_level_lo
     global hi_tasks_active
@@ -122,10 +123,17 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
                 print('%.3f:\t%s INTERRUPTED, going back to wait' % (env.now, name,))
 
         # execution_time = random.uniform(0.1, wcet_hi)
-        execution_time = random.normalvariate(mu=3 * wcet_lo / 4, sigma=2 * wcet_lo / 2)
+        mean = 3*wcet_lo/4
+        ref_val = norm.ppf(prob_within)
+        sigma = mean/(3*ref_val)
+        print(mean, sigma, wcet_lo, 2*wcet_lo/2)
+
+        execution_time = random.normalvariate(mu=mean, sigma= sigma)
+        # execution_time = random.normalvariate(mu=3 * wcet_lo / 4, sigma= 2*wcet_lo / 2)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet_hi)
         # execution_time = wcet_hi
+
         arrival_time = env.now
         actual_deadline = arrival_time + period
         virtual_deadline = arrival_time + x * period
@@ -232,76 +240,85 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
 # random.seed(2)
 # random.seed(1)
-avg_service_periods = []
+service_periods = []
 lo_task_periods = []
 run_dur = 100
+prob_within_arr = [0.6, 0.7, 0.8, 0.9, 0.999999]
 
-for sched in range(1000):
-    deadline_met = True
-    crit_level_lo = True
+for prob_within in prob_within_arr:
+    avg_service_periods = []
 
-    env = simpy.Environment()
-    processor = simpy.PreemptiveResource(env, capacity=1)
-    task_arrivals = {}
-    task_suppresses = {}
-    task_start = {}
-    task_end = {}
-    task_complete = {}
-    hi_crit = []
-    lo_crit = []
-    lo_task_names = []
-    hi_tasks_active = []
-    hi_tasks_names = []
+    for sched in range(100):
+        deadline_met = True
+        crit_level_lo = True
 
-    lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.02,
-                                                                            max_util=0.2, min_ratio=0.3, max_ratio=0.5)
+        env = simpy.Environment()
+        processor = simpy.PreemptiveResource(env, capacity=1)
+        task_arrivals = {}
+        task_suppresses = {}
+        task_start = {}
+        task_end = {}
+        task_complete = {}
+        hi_crit = []
+        lo_crit = []
+        lo_task_names = []
+        hi_tasks_active = []
+        hi_tasks_names = []
 
-    lo_tasks_list = []
-    hi_tasks_list = []
+        lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.02,
+                                                                                max_util=0.2, min_ratio=0.3, max_ratio=0.5)
 
-    for i, (start, period, wcet) in enumerate(lo_tasks):
-        task_name = 'Task LO ' + str(i)
-        lo_task_names.append(task_name)
-        task_arrivals[task_name] = []
-        task_suppresses[task_name] = []
-        task_start[task_name] = []
-        task_end[task_name] = []
-        task_complete[task_name] = []
-        print(task_name, ':', period, wcet)
-        lo_tasks_list.append(
-            env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+        lo_tasks_list = []
+        hi_tasks_list = []
 
-    for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
-        task_name = 'Task HI ' + str(i)
-        hi_tasks_names.append(task_name)
-        task_arrivals[task_name] = []
-        task_start[task_name] = []
-        task_end[task_name] = []
-        task_complete[task_name] = []
-        print(task_name, ':', period, wcet_lo, wcet_hi)
-        hi_tasks_list.append(env.process(
-            task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
-                    lo_tasks=lo_tasks_list, x=x)))
+        for i, (start, period, wcet) in enumerate(lo_tasks):
+            task_name = 'Task LO ' + str(i)
+            lo_task_names.append(task_name)
+            task_arrivals[task_name] = []
+            task_suppresses[task_name] = []
+            task_start[task_name] = []
+            task_end[task_name] = []
+            task_complete[task_name] = []
+            print(task_name, ':', period, wcet)
+            lo_tasks_list.append(
+                env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
-    print('\n')
-    env.run(until=run_dur)
-    # VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses,
-    #                                  task_start=task_start,
-    #                                  task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
-    #                                  hi_task_names=hi_tasks_names,
-    #                                  hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
-    lo_task_completions = 0
-    for i, task in enumerate(lo_task_names):
-        print(task, len(task_complete[task]), task_complete[task])
-        lo_task_completions = len(task_complete[task])
-        lo_task_periods.append(lo_tasks[i][1])
-        if lo_task_completions:
-            avg_service_periods.append(run_dur / lo_task_completions)
-        else:
-            avg_service_periods.append(run_dur)
+        for i, (start, period, wcet_lo, wcet_hi) in enumerate(hi_tasks):
+            task_name = 'Task HI ' + str(i)
+            hi_tasks_names.append(task_name)
+            task_arrivals[task_name] = []
+            task_start[task_name] = []
+            task_end[task_name] = []
+            task_complete[task_name] = []
+            print(task_name, ':', period, wcet_lo, wcet_hi)
+            hi_tasks_list.append(env.process(
+                task_hi(env, task_name, processor, start_time=start, wcet_lo=wcet_lo, wcet_hi=wcet_hi, period=period,
+                        lo_tasks=lo_tasks_list, x=x, prob_within=prob_within)))
 
+        print('\n')
+        env.run(until=run_dur)
+        # VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses,
+        #                                  task_start=task_start,
+        #                                  task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
+        #                                  hi_task_names=hi_tasks_names,
+        #                                  hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
+        lo_task_completions = 0
+        for i, task in enumerate(lo_task_names):
+            print(task, len(task_complete[task]), task_complete[task])
+            lo_task_completions = len(task_complete[task])
+            lo_task_periods.append(lo_tasks[i][1])
+            if lo_task_completions:
+                avg_service_periods.append(run_dur / lo_task_completions)
+            else:
+                avg_service_periods.append(run_dur)
 
+    service_periods.append(np.mean(avg_service_periods))
+    avg_service_period = np.mean(avg_service_periods)
+    avg_period = np.mean(lo_task_periods)
+    print('average serive period', avg_service_period, 'avg task period', avg_period)
 
-avg_service_period = np.mean(avg_service_periods)
-avg_period = np.mean(lo_task_periods)
-print('average serive period', avg_service_period, 'avg task period', avg_period)
+plt.plot(1- np.array(prob_within_arr),service_periods)
+plt.xlabel('Probability of HI-crit task exceeding LO-crit WCET')
+plt.ylabel('Avg task period of LO-crit task')
+plt.savefig('EDF-VD service_rate')
+plt.show()
