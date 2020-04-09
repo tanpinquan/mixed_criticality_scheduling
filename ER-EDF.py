@@ -62,7 +62,11 @@ def task_lo(env, name, proc, start_time, wcet, period):
     while deadline_met & crit_level_lo:
         # execution_time = random.uniform(0, wcet)
         # execution_time = max(0.1, execution_time)
-        execution_time = wcet
+        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 2)
+        execution_time = max(0.01, execution_time)
+        execution_time = min(execution_time, wcet)
+        # execution_time = wcet
+
         arrival_time = env.now
         deadline = arrival_time + period[-1]
         release_points = arrival_time + np.array(period)
@@ -102,6 +106,7 @@ def task_lo(env, name, proc, start_time, wcet, period):
             print('%.2f:\t%s DEADLINE MISSED' % (env.now, name))
             deadline_met = False
         else:
+            # slack.add_slack(deadline, wcet - execution_time)
             for i, release_point in enumerate(release_points):
                 if (release_point > env.now):
                     yield env.timeout(release_point - env.now)
@@ -117,9 +122,8 @@ def task_lo(env, name, proc, start_time, wcet, period):
                         # task_arrivals[name].append(env.now)
 
                         break
-                    if i == len(release_points)-1:
+                    if i == len(release_points) - 1:
                         task_arrivals[name].append(env.now)
-
 
 
 def task_hi(env, name, proc, start_time, wcet, period):
@@ -179,7 +183,7 @@ slack = Slack()
 # slack.add_slack(25, 2)
 # slack.add_slack(10, 6)
 # slack.add_slack(35, 7)
-# random.seed(1111)
+random.seed(1)
 deadline_met = True
 crit_level_lo = True
 
@@ -195,51 +199,19 @@ hi_tasks_names = []
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
 
+# lo_tasks_VD, hi_tasks_VD, utils_VD, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10,
+#                                                                                  min_util=0.1, max_util=0.2)
+#
+# lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks_VD, hi_tasks=hi_tasks_VD,
+#                                                                       utils=utils_VD,
+#                                                                       er_step=0.1)
 
-# lo_start = [1, 0]
-# lo_periods = [[2, 3], [5, 6]]
-# lo_wcets = [1, 2]
-#
-# lo_tasks = []
-# for i, (start, period, wcet) in enumerate(zip(lo_start, lo_periods, lo_wcets)):
-#     task_name = 'Task LO ' + str(i)
-#
-#     lo_task_names.append(task_name)
-#     task_arrivals[task_name] = []
-#     task_start[task_name] = []
-#     task_early_release[task_name] = []
-#     task_end[task_name] = []
-#     print(task_name, period, wcet)
-#
-#     lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
-#
-# hi_start = [0, 0]
-# hi_periods = [5, 7]
-# hi_wcets = [2, 1]
-#
-# for i, (start, period, wcet) in enumerate(zip(hi_start, hi_periods, hi_wcets)):
-#     task_name = 'Task HI ' + str(i)
-#
-#     hi_tasks_names.append(task_name)
-#     task_arrivals[task_name] = []
-#     task_start[task_name] = []
-#     task_end[task_name] = []
-#     print(task_name, period, wcet)
-#
-#     task3 = env.process(task_hi(env, task_name, processor, start_time=start, wcet=wcet, period=period))
-#
-# env.run(until=30)
-#
-# VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release,
-#                                  task_start=task_start,
-#                                  task_end=task_end, lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, )
+lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10,
+                                                                                min_util=0.1, max_util=0.2,
+                                                                                er_step=0.1, num_er=5)
 
-lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.1,
-                                                                        max_util=0.2)
+lo_tasks_list = []
 
-lo_tasks_ER, hi_tasks_ER, util_2 = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks, hi_tasks=hi_tasks, utils=utils, er_step=0.1)
-
-lo_tasks = []
 for i, (start, period, wcet) in enumerate(lo_tasks_ER):
     task_name = 'Task LO ' + str(i)
 
@@ -251,7 +223,7 @@ for i, (start, period, wcet) in enumerate(lo_tasks_ER):
     task_complete[task_name] = []
     print(task_name, period, wcet)
 
-    lo_tasks.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
+    lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
 
 hi_start = [0, 0]
 hi_periods = [5, 7]
@@ -276,7 +248,6 @@ VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release
                                  task_end=task_end,
                                  task_complete=task_complete,
                                  lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, )
-
 
 # lo_tasks, hi_tasks, util = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10, min_util=0.1,
 #                                                                         max_util=0.2, period_mult=5)
