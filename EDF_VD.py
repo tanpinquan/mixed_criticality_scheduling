@@ -230,7 +230,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
 
 # random.seed(2)
-# random.seed(1)
+random.seed(1)
 
 deadline_met = True
 crit_level_lo = True
@@ -249,8 +249,8 @@ hi_tasks_active = []
 hi_tasks_names = []
 
 
-lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10, min_util=0.1,
-                                                                        max_util=0.2)
+lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10,
+                                                                        min_util=0.02, max_util=0.2)
 
 lo_tasks_list = []
 hi_tasks_list = []

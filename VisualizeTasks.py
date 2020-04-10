@@ -84,18 +84,18 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
                                         markerfmt='C' + str(i + len(lo_task_names)) + 'o')
             plt.setp(markerline, markersize=5, marker=9)
 
-    plt.xlim(-0.5,xlim)
+    plt.xlim(-0.5, xlim)
     plt.yticks([])
     plt.ylabel('LO-crit                                   HI-crit           ')
     plt.show()
 
 
-def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, task_complete, lo_task_names, hi_task_names, xlim=10):
+def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, task_complete, lo_task_names,
+                      hi_task_names, xlim=10):
     total_tasks = len(lo_task_names) + len(hi_task_names)
     color = cm.get_cmap('tab10').colors
     plt.rc('axes', prop_cycle=(cycler('color', color)))
     bar_colors = cm.get_cmap('tab20').colors
-    print(bar_colors)
 
     base_height = 1
 
@@ -107,25 +107,28 @@ def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, t
         plt_data = list(zip(task_start[name], task_duration))
         # c = next(color)
         # print(c)
-        plt.broken_barh(plt_data, ((1 * i) * base_height, 0.8 * base_height), facecolors=bar_colors[i*2+1])
+        plt.broken_barh(plt_data, ((1 * i) * base_height, 0.8 * base_height),
+                        facecolors=bar_colors[(i * 2 + 1) % len(bar_colors)])
+        color_cycle_ind = i % len(color)
 
         if len(task_arrivals[name]):
             markerline, _, _ = plt.stem(task_arrivals[name],
                                         (i + 0.9) * base_height * np.ones(len(task_arrivals[name])),
                                         bottom=i * base_height,
                                         use_line_collection=True,
-                                        linefmt='C' + str(i) + ':',
-                                        basefmt='C' + str(i) + '-',
-                                        markerfmt='C' + str(i) + 'o')
+                                        linefmt='C' + str(color_cycle_ind) + ':',
+                                        basefmt='C' + str(color_cycle_ind) + '-',
+                                        markerfmt='C' + str(color_cycle_ind) + 'o')
             # markerline.set_marker(8)
             plt.setp(markerline, markersize=5, marker=8)
         if len(task_early_release[name]):
-            markerline, _, _ = plt.stem(task_early_release[name], (i + 0.9) * base_height * np.ones(len(task_early_release[name])),
-                     bottom=i * base_height,
-                     use_line_collection=True,
-                     linefmt='C' + str(i) + ':',
-                     basefmt='C' + str(i) + '-',
-                     markerfmt='C' + str(i) + 'd')
+            markerline, _, _ = plt.stem(task_early_release[name],
+                                        (i + 0.9) * base_height * np.ones(len(task_early_release[name])),
+                                        bottom=i * base_height,
+                                        use_line_collection=True,
+                                        linefmt='C' + str(color_cycle_ind) + ':',
+                                        basefmt='C' + str(color_cycle_ind) + '-',
+                                        markerfmt='C' + str(color_cycle_ind) + 'd')
             plt.setp(markerline, markersize=5, marker='s')
 
         if len(task_complete[name]):
@@ -133,45 +136,48 @@ def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, t
                                         (i + 0.9) * base_height * np.ones(len(task_complete[name])),
                                         bottom=i * base_height,
                                         use_line_collection=True,
-                                        basefmt='C' + str(i) + '-',
-                                        linefmt='C' + str(i) + ':',
-                                        markerfmt='C' + str(i) + ',')
+                                        basefmt='C' + str(color_cycle_ind) + '-',
+                                        linefmt='C' + str(color_cycle_ind) + ':',
+                                        markerfmt='C' + str(color_cycle_ind) + ',')
             plt.setp(markerline, markersize=5, marker=9)
 
+    # plt.plot([0,xlim],[len(lo_task_names)+1,len(lo_task_names)+1], ':k')
+
+    buffer_height = 2
     for i, name in enumerate(hi_task_names):
-        print(name)
         task_start[name], task_end[name] = clean_end_timing(task_start[name], task_end[name])
 
         task_duration = list(np.array(task_end[name]) - np.array(task_start[name]))
         plt_data = list(zip(task_start[name], task_duration))
         # c = next(color)
-        plt.broken_barh(plt_data, ((1 * (i + len(lo_task_names)) + 1) * base_height, 0.8 * base_height),
-                        facecolors=bar_colors[((i + len(lo_task_names))*2+1)%len(bar_colors)])
-        color_cycle_ind = (i+len(lo_task_names))%len(color)
-        print(color_cycle_ind)
+        plt.broken_barh(plt_data, ((1 * (i + len(lo_task_names)) + buffer_height) * base_height, 0.8 * base_height),
+                        facecolors=bar_colors[((i + len(lo_task_names)) * 2 + 1) % len(bar_colors)])
+        color_cycle_ind = (i + len(lo_task_names)) % len(color)
+        # print(color_cycle_ind)
         if len(task_arrivals[name]):
             markerline, _, _ = plt.stem(task_arrivals[name],
-                                        (i + len(lo_task_names) + 1.9) * base_height * np.ones(
+                                        (i + len(lo_task_names) + buffer_height + 0.9) * base_height * np.ones(
                                             len(task_arrivals[name])),
-                                        bottom=(i + len(lo_task_names) + 1) * base_height,
+                                        bottom=(i + len(lo_task_names) + buffer_height) * base_height,
                                         use_line_collection=True,
                                         linefmt='C' + str(color_cycle_ind) + ':',
                                         basefmt='C' + str(color_cycle_ind) + '-',
                                         markerfmt='C' + str(color_cycle_ind) + 'o')
             plt.setp(markerline, markersize=5, marker=8)
             markerline, _, _ = plt.stem(task_complete[name],
-                                        (i + len(lo_task_names) + 1.9) * base_height * np.ones(
+                                        (i + len(lo_task_names) + buffer_height + 0.9) * base_height * np.ones(
                                             len(task_complete[name])),
-                                        bottom=(i + len(lo_task_names) + 1) * base_height,
+                                        bottom=(i + len(lo_task_names) + buffer_height) * base_height,
                                         use_line_collection=True,
                                         linefmt='C' + str(color_cycle_ind) + ':',
                                         basefmt='C' + str(color_cycle_ind) + '-',
                                         markerfmt='C' + str(color_cycle_ind) + 'o')
             plt.setp(markerline, markersize=5, marker=9)
 
-    plt.xlim(-0.5,xlim)
+    plt.xlim(-0.5, xlim)
     plt.yticks([])
-    plt.ylabel('LO-crit                                   HI-crit           ')
+    plt.ylabel('            LO-crit                                                HI-crit ')
+    plt.savefig('ER-EDF schedule', bbox_inches = 'tight')
     plt.show()
 
 
