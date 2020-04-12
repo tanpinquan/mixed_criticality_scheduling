@@ -246,8 +246,8 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x, 
 avg_service_periods = []
 lo_task_periods = []
 run_dur = 500
-# prob_within_arr = [0.6, 0.7, 0.8, 0.9, 0.999999]
-prob_within_arr = [0.7]
+prob_within_arr = [0.6, 0.7, 0.8, 0.9, 0.999999]
+# prob_within_arr = [0.7]
 
 for prob_within in prob_within_arr:
     service_periods = []

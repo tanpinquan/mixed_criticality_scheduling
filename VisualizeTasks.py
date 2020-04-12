@@ -52,6 +52,8 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
                                         linefmt='C' + str(i) + ':',
                                         markerfmt='C' + str(i) + ',')
             plt.setp(markerline, markersize=5, marker=9)
+        plt.plot([0, xlim],[i * base_height,i * base_height])
+
 
     for i, name in enumerate(hi_task_names):
         task_start[name], task_end[name] = clean_end_timing(task_start[name], task_end[name])
@@ -90,8 +92,8 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
     plt.show()
 
 
-def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, task_complete, lo_task_names,
-                      hi_task_names, xlim=10):
+def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_er_points, task_start, task_end, task_complete, lo_task_names,
+                      hi_task_names, xlim=10, title='ER-EDF'):
     total_tasks = len(lo_task_names) + len(hi_task_names)
     color = cm.get_cmap('tab10').colors
     plt.rc('axes', prop_cycle=(cycler('color', color)))
@@ -141,6 +143,18 @@ def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, t
                                         markerfmt='C' + str(color_cycle_ind) + ',')
             plt.setp(markerline, markersize=5, marker=9)
 
+        if len(task_er_points[name]):
+            markerline, _, _ = plt.stem(task_er_points[name],
+                                        (i + 0.5) * base_height * np.ones(len(task_er_points[name])),
+                                        bottom=i * base_height,
+                                        use_line_collection=True,
+                                        linefmt='C' + str(color_cycle_ind) + ':',
+                                        basefmt='C' + str(color_cycle_ind) + '-',
+                                        markerfmt='C' + str(color_cycle_ind) + 'd')
+            plt.setp(markerline, markersize=5, marker=',')
+
+        plt.plot([0, xlim],[i * base_height,i * base_height])
+
     # plt.plot([0,xlim],[len(lo_task_names)+1,len(lo_task_names)+1], ':k')
 
     buffer_height = 2
@@ -177,6 +191,7 @@ def plot_tasks_ER_EDF(task_arrivals, task_early_release, task_start, task_end, t
     plt.xlim(-0.5, xlim)
     plt.yticks([])
     plt.ylabel('            LO-crit                                                HI-crit ')
+    plt.title(title)
     plt.savefig('ER-EDF schedule', bbox_inches = 'tight')
     plt.show()
 

@@ -122,6 +122,21 @@ def generate_taskset_ER_EDF(min_period, max_period, min_util, max_util, er_step=
     return lo_tasks, hi_tasks, total_util
 
 
+def change_ER_points(lo_tasks, num_er):
+    if len(lo_tasks):
+        lo_tasks = list(zip(*lo_tasks))
+        lo_starts = list(lo_tasks[0])
+        lo_periods = list(lo_tasks[1])
+        lo_wcets = list(lo_tasks[2])
+
+        for i, task in enumerate(lo_periods):
+            lo_periods[i] = np.linspace(task[-1]/(num_er+1), task[-1], num_er + 1)
+            # print(lo_periods[i])
+
+        lo_tasks = list(zip(lo_starts, lo_periods, lo_wcets))
+
+    return lo_tasks
+
 def convert_VD_to_ER(lo_tasks, hi_tasks, utils, er_step, num_er=5):
     if len(hi_tasks):
         hi_tasks = list(zip(*hi_tasks))
@@ -143,13 +158,13 @@ def convert_VD_to_ER(lo_tasks, hi_tasks, utils, er_step, num_er=5):
             lo_periods = np.concatenate((lo_periods, [lo_periods[-1, :] + er_step * lo_periods[0, :]]), axis=0)
             util_lo = np.sum(lo_wcets / lo_periods[-1, :])
             util = util_hi + util_lo
-            # print(util_lo, util)
+            print(util_lo, util)
 
         # while util > 1:
         #     lo_periods = np.concatenate((lo_periods, [lo_periods[-1, :] + er_step * lo_periods[0, :]]), axis=0)
         #     util_lo = np.sum(lo_wcets / lo_periods[-1, :])
         #     util = util_hi + util_lo
-        #     print(util_lo, util)
+        #     # print(util_lo, util)
 
         lo_tasks = list(zip(lo_starts.T, lo_periods.T, lo_wcets.T))
 

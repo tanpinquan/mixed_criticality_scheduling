@@ -102,20 +102,25 @@ def task_lo(env, name, proc, start_time, wcet, period):
             for i, release_point in enumerate(release_points):
                 if (release_point > env.now):
                     yield env.timeout(release_point - env.now)
+                    task_er_points[name].append(env.now)
                     slack_demand = wcet - period[i] * wcet / period[-1]
                     slack_deadline = env.now + period[-1]
                     # print('%.2f:\t%s ER point' % (env.now, name), "\t slack req ", slack_demand, ', slack deadline',
                     #       slack_deadline)
+                    if slack_demand == 0:
+                        # print('%.2f:\t%s NORMAL RELEASED' % (env.now, name))
+                        task_arrivals[name].append(env.now)
                     if slack.reclaim_slack(slack_deadline, slack_demand):
-                        # print('%.2f:\t%s EARLY RELEASED' % (env.now, name))
+                        # print('%.2f:\t%s  RELEASED' % (env.now, name))
+
                         if i < len(release_points) - 1:
+                            # print('%.2f:\t%s EARLY RELEASED' % (env.now, name))
                             task_early_release[name].append(env.now)
 
-                        if i == len(release_points) - 1:
-                            task_arrivals[name].append(env.now)
+                        # if i == len(release_points) - 1:
+                        #     print('%.2f:\t%s NORMAL RELEASED' % (env.now, name))
+                        #     task_arrivals[name].append(env.now)
                         break
-
-
 
 
 def task_hi(env, name, proc, start_time, wcet, period, min_ratio=0.3, max_ratio=0.5, prob_within=0.8):
@@ -129,8 +134,8 @@ def task_hi(env, name, proc, start_time, wcet, period, min_ratio=0.3, max_ratio=
 
     while deadline_met:
         # execution_time = random.uniform(0.1, wcet)
-        execution_time = random.normalvariate(mu=wcet / 2, sigma=wcet / 8)
-        # execution_time = random.normalvariate(mu=mean, sigma=sigma)
+        # execution_time = random.normalvariate(mu=3*wcet / 4, sigma=wcet / 4)
+        execution_time = random.normalvariate(mu=mean, sigma=sigma)
         execution_time = max(0.01, execution_time)
         execution_time = min(execution_time, wcet)
 
@@ -174,23 +179,43 @@ def task_hi(env, name, proc, start_time, wcet, period, min_ratio=0.3, max_ratio=
 
 
 # random.seed(1)
-
-run_dur = 500
-num_runs = 2
-num_er_arr = [2,4]
-max_period_arr = [3]
+plot_schd = False
+run_dur = 200
+num_runs = 100
+num_er_arr = [1, 2, 4, 6, 8, 10, 12]
+max_period_arr = [3,5,7]
 edf_vd_ref = 6.78
+edf_vd_ref = 5.98
+prob_within = 0.9
 
 for max_period_mult in max_period_arr:
     avg_service_periods = []
+    total_completions = []
+    lo_task_periods = [[] for i in range(len(num_er_arr))]
+    service_periods = [[] for i in range(len(num_er_arr))]
+    task_completions = [[] for i in range(len(num_er_arr))]
+    avg_completions = np.zeros((len(num_er_arr), num_runs))
+    for sched in range(num_runs):
+        print(sched)
 
-    for num_er in num_er_arr:
-        lo_task_periods = []
+        # lo_task_periods = []
+        # service_periods = []
 
-        service_periods = []
-        er_step = (max_period_mult - 1) / num_er
+        # lo_tasks_VD, hi_tasks_VD, utils_VD, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10,
+        #                                                                                  min_util=0.1, max_util=0.2,
+        #                                                                                  min_ratio=0.3, max_ratio=0.5)
+        #
+        # lo_tasks_ref, hi_tasks_ER, util_ER = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks_VD,
+        #                                                                        hi_tasks=hi_tasks_VD,
+        #                                                                        utils=utils_VD,
+        #                                                                        er_step=0.1)
 
-        for sched in range(num_runs):
+        lo_tasks_ref, hi_tasks_ER, util_ER = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10,
+                                                                                      min_util=0.02, max_util=0.2,
+                                                                                      er_step=(max_period_mult - 1),
+                                                                                      num_er=1)
+        for num_er_ind, num_er in enumerate(num_er_arr):
+            er_step = (max_period_mult - 1) / num_er
 
             slack = Slack()
 
@@ -205,23 +230,17 @@ for max_period_mult in max_period_arr:
             lo_task_names = []
             hi_tasks_active = []
             hi_tasks_names = []
+            task_er_points = {}
 
             env = simpy.Environment()
             processor = simpy.PreemptiveResource(env, capacity=1)
 
-            lo_tasks_VD, hi_tasks_VD, utils_VD, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1,
-                                                                                             max_period=10,
-                                                                                             min_util=0.02,
-                                                                                             max_util=0.2)
+            # lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks_VD,
+            #                                                                       hi_tasks=hi_tasks_VD,
+            #                                                                       utils=utils_VD,
+            #                                                                       er_step=er_step, num_er=num_er)
 
-            lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks_VD,
-                                                                                  hi_tasks=hi_tasks_VD,
-                                                                                  utils=utils_VD,
-                                                                                  er_step=er_step, num_er=num_er)
-
-            # lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.generate_taskset_ER_EDF(min_period=1, max_period=10,
-            #                                                                              min_util=0.02, max_util=0.2,
-            #                                                                              er_step=er_step, num_er=num_er)
+            lo_tasks_ER = TasksetGenerator.change_ER_points(lo_tasks_ref, num_er=num_er)
 
             lo_tasks_list = []
 
@@ -235,6 +254,7 @@ for max_period_mult in max_period_arr:
                 task_end[task_name] = []
                 task_complete[task_name] = []
                 # print(task_name, period, wcet)
+                task_er_points[task_name] = []
 
                 lo_tasks_list.append(
                     env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
@@ -255,42 +275,62 @@ for max_period_mult in max_period_arr:
 
                 task3 = env.process(
                     task_hi(env, task_name, processor, start_time=start, wcet=wcet, period=period,
-                            # min_ratio=0.3, max_ratio=0.5, prob_within=0.8
-                            )
+                            min_ratio=0.3, max_ratio=0.5, prob_within=prob_within)
                 )
 
             env.run(until=run_dur)
 
-            VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release,
-                                             task_start=task_start,
-                                             task_end=task_end,
-                                             task_complete=task_complete,
-                                             lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, xlim=30)
+            if plot_schd:
+                VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release,
+                                                 task_er_points=task_er_points,
+                                                 task_start=task_start,
+                                                 task_end=task_end,
+                                                 task_complete=task_complete,
+                                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names,
+                                                 xlim=30)
 
             for i, task in enumerate(lo_task_names):
+                task_completions[num_er_ind].append(len(task_complete[task]))
                 lo_task_completions = len(task_complete[task])
-                lo_task_periods.append(lo_tasks_ER[i][1][0])
+                lo_task_periods[num_er_ind].append(lo_tasks_ER[i][1][0])
                 if lo_task_completions:
-                    service_periods.append(run_dur / lo_task_completions)
+                    service_periods[num_er_ind].append(run_dur / lo_task_completions)
                 else:
-                    service_periods.append(run_dur)
+                    service_periods[num_er_ind].append(run_dur)
 
-            # lo_task_completions = 0
-            # for task in lo_task_names:
-            #     print(task, len(task_complete[task]), task_complete[task])
-            #     lo_task_completions += len(task_complete[task])
-            #
-            # avg_completions = lo_task_completions / len(lo_task_names)
-            # print('average completions per task', avg_completions, 'expected completions', 30 / 5.5)
+            avg_completions[num_er_ind, sched] = 0
+            for task in lo_task_names:
+                avg_completions[num_er_ind, sched] += len(task_complete[task])/len(lo_task_names)
 
-        avg_service_periods.append(np.mean(service_periods))
-        avg_period = np.mean(lo_task_periods)
-        print('Completed k =', max_period_mult, ', num_er =', num_er, ', average service period',
-              avg_service_periods[-1], 'avg task period', avg_period)
+            # avg_completions[num_er_ind, sched] = num_completions/len(lo_task_names)
+
+
+    # service_periods = np.array(service_periods)
+    # lo_task_periods = np.array(lo_task_periods)
+    # task_completions = np.array(task_completions)
+    #
+    # avg_service_periods = np.mean(service_periods,1)
+    # avg_periods = np.mean(lo_task_periods,1)
+    # total_completions = np.sum(task_completions,axis=1)
+
+    # for i in range(len(service_periods)):
+    #     avg_service_periods.append(np.mean(service_periods[i]))
+    #     avg_period = np.mean(lo_task_periods[i])
+    #     total_completions.append(np.sum(task_completions[i]))
+    #     print('Completed k =', max_period_mult, ', num_er =', num_er_arr[i], ', average service period',
+    #           avg_service_periods[-1], 'avg task period', avg_period)
+
+    avg_service_periods = run_dur/np.mean(avg_completions,1)
+    print(total_completions)
+
     plt.plot(np.array(num_er_arr), avg_service_periods)
+
+plt.plot([1,12],[edf_vd_ref, edf_vd_ref], ':k')
 
 plt.xlabel('Number of ER Points')
 plt.ylabel('Avg task period of LO-crit task')
+plt.legend(['ER-EDF:3', 'ER-EDF:5', 'ER-EDF:7', 'EDF-VD'])
+plt.title(f'Avg period with prob exceed LO WCET = {prob_within}')
 plt.savefig('ER-EDF service_rate')
-plt.legend(['ER-EDF:3', 'ER-EDF:5'])
+
 plt.show()

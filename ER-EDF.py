@@ -109,18 +109,22 @@ def task_lo(env, name, proc, start_time, wcet, period):
             for i, release_point in enumerate(release_points):
                 if (release_point > env.now):
                     yield env.timeout(release_point - env.now)
+                    task_er_points[name].append(env.now)
                     slack_demand = wcet - period[i] * wcet / period[-1]
                     slack_deadline = env.now + period[-1]
                     print('%.2f:\t%s ER point' % (env.now, name), "\t slack req ", slack_demand, ', slack deadline',
                           slack_deadline)
+                    if slack_demand == 0:
+                        print('%.2f:\t%s NORMAL RELEASED' % (env.now, name))
+                        task_arrivals[name].append(env.now)
                     if slack.reclaim_slack(slack_deadline, slack_demand):
                         print('%.2f:\t%s EARLY RELEASED' % (env.now, name))
                         if i < len(release_points) - 1:
                             task_early_release[name].append(env.now)
                         # else:
                         # task_arrivals[name].append(env.now)
-                        if i == len(release_points) - 1:
-                            task_arrivals[name].append(env.now)
+                        # if i == len(release_points) - 1:
+                        #     task_arrivals[name].append(env.now)
                         break
 
 
@@ -181,8 +185,12 @@ slack = Slack()
 # slack.add_slack(25, 2)
 # slack.add_slack(10, 6)
 # slack.add_slack(35, 7)
-random.seed(1)
-run_dur = 30
+# random.seed(8)
+# random.seed(10)
+random.seed(11)
+# random.seed(12)
+
+run_dur = 100
 deadline_met = True
 
 task_arrivals = {}
@@ -193,6 +201,7 @@ task_complete = {}
 lo_task_names = []
 hi_tasks_active = []
 hi_tasks_names = []
+task_er_points = {}
 
 env = simpy.Environment()
 processor = simpy.PreemptiveResource(env, capacity=1)
@@ -204,8 +213,8 @@ processor = simpy.PreemptiveResource(env, capacity=1)
 lo_tasks_VD, hi_tasks_VD, utils_VD, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10,
                                                                                  min_util=0.02, max_util=0.2)
 
-num_er = 5
-max_period = 3
+num_er = 1
+max_period = 2
 er_step = (max_period - 1) / num_er
 
 lo_tasks_ER, hi_tasks_ER, util_ER = TasksetGenerator.convert_VD_to_ER(lo_tasks=lo_tasks_VD, hi_tasks=hi_tasks_VD,
@@ -223,6 +232,9 @@ for i, (start, period, wcet) in enumerate(lo_tasks_ER):
     task_early_release[task_name] = []
     task_end[task_name] = []
     task_complete[task_name] = []
+
+    task_er_points[task_name] = []
+
     print(task_name, period, wcet)
 
     lo_tasks_list.append(env.process(task_lo(env, task_name, processor, start_time=start, wcet=wcet, period=period)))
@@ -243,13 +255,12 @@ for i, (start, period, wcet) in enumerate(hi_tasks_ER):
 
     task3 = env.process(task_hi(env, task_name, processor, start_time=start, wcet=wcet, period=period))
 
-env.run(until=30)
+env.run(until=run_dur)
 
-VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release,
-                                 task_start=task_start,
-                                 task_end=task_end,
-                                 task_complete=task_complete,
-                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names, xlim=30)
+VisualizeTasks.plot_tasks_ER_EDF(task_arrivals=task_arrivals, task_early_release=task_early_release, task_er_points=task_er_points,
+                                 task_start=task_start,task_end=task_end, task_complete=task_complete,
+                                 lo_task_names=lo_task_names, hi_task_names=hi_tasks_names,
+                                 xlim=30, title=f'ER-EDF Schedule with {num_er} early release points')
 
 
 lo_task_completions = 0
