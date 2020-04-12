@@ -230,7 +230,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
 
 # random.seed(2)
-random.seed(1)
+# random.seed(1)
 
 deadline_met = True
 crit_level_lo = True
@@ -286,14 +286,12 @@ VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=ta
                                  hi_task_names=hi_tasks_names,
                                  hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
 
-lo_task_completions = 0
-for task in lo_task_names:
-    print(task, len(task_complete[task]), task_complete[task])
-    lo_task_completions += len(task_complete[task])
+# lo_task_completions = 0
+# for task in lo_task_names:
+#     print(task, len(task_complete[task]), task_complete[task])
+#     lo_task_completions += len(task_complete[task])
+#
+# avg_completions = lo_task_completions/len(lo_task_names)
+#
+# print('average completions per task', avg_completions, 'expected completions', 30/5.5)
 
-avg_completions = lo_task_completions/len(lo_task_names)
-
-print('average completions per task', avg_completions, 'expected completions', 30/5.5)
-
-# with open('train.pickle', 'rb') as f:
-#     task_arrivals, task_suppresses, task_start, task_end, task_complete, lo_task_names, hi_tasks_names, hi_crit, lo_crit = pickle.load(f)
