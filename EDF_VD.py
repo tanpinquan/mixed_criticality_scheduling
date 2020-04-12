@@ -229,7 +229,7 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x):
 
 
 # random.seed(2)
-# random.seed(1)
+random.seed(1)
 
 deadline_met = True
 crit_level_lo = True
@@ -249,7 +249,7 @@ hi_tasks_names = []
 
 
 lo_tasks, hi_tasks, utils, x = TasksetGenerator.generate_taskset_EDF_VD(min_period=1, max_period=10,
-                                                                        min_util=0.02, max_util=0.2)
+                                                                        min_util=0.1, max_util=0.2)
 
 lo_tasks_list = []
 hi_tasks_list = []
@@ -283,14 +283,5 @@ env.run(until=30)
 VisualizeTasks.plot_tasks_EDF_VD(task_arrivals=task_arrivals, task_suppresses=task_suppresses, task_start=task_start,
                                  task_end=task_end, task_complete=task_complete, lo_task_names=lo_task_names,
                                  hi_task_names=hi_tasks_names,
-                                 hi_crit=hi_crit, lo_crit=lo_crit, xlim=30)
-
-# lo_task_completions = 0
-# for task in lo_task_names:
-#     print(task, len(task_complete[task]), task_complete[task])
-#     lo_task_completions += len(task_complete[task])
-#
-# avg_completions = lo_task_completions/len(lo_task_names)
-#
-# print('average completions per task', avg_completions, 'expected completions', 30/5.5)
+                                 hi_crit=hi_crit, lo_crit=lo_crit, xlim=25)
 

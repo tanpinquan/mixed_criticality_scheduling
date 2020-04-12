@@ -12,9 +12,10 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
     bar_colors = cm.get_cmap('tab20').colors
 
     base_height = 1
+    buffer_height = 2
 
     crit_data = get_crit_list(hi_crit, lo_crit)
-    plt.broken_barh(crit_data, (0, (total_tasks + 1) * base_height), facecolors='lightgrey')
+    plt.broken_barh(crit_data, (0, (total_tasks + buffer_height) * base_height), facecolors='lightgrey')
 
     for i, name in enumerate(lo_task_names):
 
@@ -56,7 +57,6 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
             plt.setp(markerline, markersize=5, marker=9)
         plt.plot([0, xlim], [i * base_height, i * base_height])
 
-    buffer_height = 2
 
     for i, name in enumerate(hi_task_names):
         task_start[name], task_end[name] = clean_end_timing(task_start[name], task_end[name])
@@ -91,7 +91,9 @@ def plot_tasks_EDF_VD(task_arrivals, task_suppresses, task_start, task_end, task
             plt.setp(markerline, markersize=5, marker=9)
         plt.plot([0, xlim], [(i + len(lo_task_names) + buffer_height) * base_height, (i + len(lo_task_names) + buffer_height) * base_height])
 
-    plt.xlim(-0.5, xlim)
+    # plt.xlim(-0.5, xlim)
+    plt.xlim(10, xlim)
+
     plt.yticks([])
     plt.ylabel('LO-crit                                           HI-crit      ')
     plt.show()
