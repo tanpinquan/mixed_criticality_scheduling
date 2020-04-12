@@ -4,7 +4,6 @@ import random
 import TasksetGenerator
 import VisualizeTasks
 import matplotlib.pyplot as plt
-import pickle
 
 def task_lo(env, name, proc, start_time, wcet, period):
     global deadline_met

@@ -2,6 +2,7 @@ import TasksetGenerator
 import matplotlib.pyplot as plt
 import numpy as np
 
+'''Generate taskset length distribution fro regular EDF'''
 task_length = []
 for i in range(10000):
     tasks, util = TasksetGenerator.generate_taskset_EDF(min_period=1, max_period=10, min_util=0.02, max_util=0.2)
@@ -18,7 +19,7 @@ plt.savefig('Taskset Length EDF', bbox_inches='tight')
 
 plt.show()
 
-'''EDF-VD'''
+'''Generate taskset length distribution fro EDF-VD'''
 min_ratio = 0.3
 max_ratio = 0.5
 task_length_edf_vd = []
@@ -42,10 +43,10 @@ plt.xlim(3.5, 30.5)
 
 plt.show()
 
-print(np.mean(task_length), np.mean(task_length_edf_vd))
-print(np.mean(lo_task_length_edf_vd), np.mean(hi_task_length_edf_vd))
+# print(np.mean(task_length), np.mean(task_length_edf_vd))
+# print(np.mean(lo_task_length_edf_vd), np.mean(hi_task_length_edf_vd))
 
-'''ER-EDF'''
+'''Generate taskset length distribution fro ER-EDF'''
 min_ratio = 0.3
 max_ratio = 0.5
 k = 10
@@ -69,5 +70,7 @@ plt.xlim(3.5, 30.5)
 plt.savefig('Taskset Length ER-EDF', bbox_inches='tight')
 plt.show()
 
-print(np.mean(task_length), np.mean(task_length_er_edf))
-print(np.mean(lo_task_length_er_edf), np.mean(hi_task_length_er_edf))
+print('Mean EDF taskset length:', np.mean(task_length))
+print('Mean EDF-VD taskset length:', np.mean(task_length_edf_vd))
+print('Mean ER-EDF taskset length:', np.mean(task_length_er_edf))
+

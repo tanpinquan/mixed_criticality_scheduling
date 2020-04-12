@@ -3,9 +3,7 @@ import simpy
 import random
 import TasksetGenerator
 from scipy.stats import norm
-import VisualizeTasks
 import matplotlib.pyplot as plt
-import pickle
 
 
 def task_lo(env, name, proc, start_time, wcet, period):
@@ -216,7 +214,6 @@ def task_hi(env, name, proc, start_time, wcet_lo, wcet_hi, period, lo_tasks, x, 
 
 
 # random.seed(2)
-# random.seed(1)
 avg_service_periods = []
 lo_task_periods = []
 run_dur = 500
