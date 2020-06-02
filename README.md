@@ -4,9 +4,9 @@ Two mixed-criticality algortihms are implemented
 - EDF-VD
 - ER-EDF
 
-![Screenshot](EDF-VD Schedule.png)
+![Screenshot](EDFVD.png)
 
-![Screenshot](ER-EDF schedule.png)
+![Screenshot](EREDF.png)
 
 The packages required to run the code are:
 - python 3.7
