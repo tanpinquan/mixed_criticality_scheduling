@@ -4,6 +4,10 @@ Two mixed-criticality algortihms are implemented
 - EDF-VD
 - ER-EDF
 
+![Screenshot](EDF-VD Schedule.png)
+
+![Screenshot](ER-EDF schedule.png)
+
 The packages required to run the code are:
 - python 3.7
 - simpy 3.0.11		https://pypi.org/project/simpy/
